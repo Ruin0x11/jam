@@ -1,5 +1,8 @@
 (ns jam.views
-  (:require [re-frame.core :as re-frame]))
+  (:require [re-frame.core :as re-frame]
+            [reagent.core :as reagent]
+            ;; [reanimated.core :as anim]
+            ))
 
 
 ;; home
@@ -37,11 +40,26 @@
              }
      (sound-options @sounds)]))
 
+;; (defn spring-test []
+;;   (let [size (reagent/atom 24)
+;;         size-spring (anim/spring size)]
+;;     (fn []
+;;       [:p
+;;        {:on-click (fn click [e] (swap! size + 10))}
+;;        [:svg {:width "500" :height "500"}
+;;         [:circle {:cx "250" :cy "250" :r @size-spring}]
+;;         ]]))
+;;   )
+
+
+
 (defn jam-panel []
   (fn []
     [:div
      [:section#jam-main
-      [sound-selector]]
+      [sound-selector]
+      ;; [spring-test]
+      ]
      [:footer#jam-footer
       [:div.footer-left
        [:a {:href "#/"} "return"]]]]))
@@ -62,4 +80,5 @@
 (defn main-panel []
   (let [active-panel (re-frame/subscribe [:active-panel])]
     (fn []
-      [show-panel @active-panel])))
+      [show-panel @active-panel]))
+  )

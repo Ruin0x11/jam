@@ -1,13 +1,12 @@
-(defproject jam "0.1.0-SNAPSHOT"
-  :dependencies [[org.clojure/clojure "1.8.0"]
-                 [org.clojure/clojurescript "1.9.908"]
+(defproject jam "0.1.0-SNAPSHOT" :dependencies [[org.clojure/clojure "1.8.0"] [org.clojure/clojurescript "1.9.908"]
                  [reagent "0.7.0"]
                  [re-frame "0.10.1"]
                  [re-frisk "0.4.5"]
                  [secretary "1.2.3"]
                  [hum "0.4.0"]
                  [day8.re-frame/http-fx "0.1.4"]
-                 [leipzig "0.10.0"]]
+                 [leipzig "0.10.0"]
+                 ]
 
   :plugins [[lein-cljsbuild "1.1.5"]
             [lein-less "1.7.5"]]
@@ -63,6 +62,7 @@
      :source-paths ["src/cljs" "test/cljs"]
      :compiler     {:main          jam.runner
                     :output-to     "resources/public/js/compiled/test.js"
+                    :pretty-print true
                     :output-dir    "resources/public/js/compiled/test/out"
                     :optimizations :none}}
     ]}

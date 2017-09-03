@@ -4,7 +4,9 @@
             [jam.logic :as logic]
             [jam.audio :as audio]
             [ajax.core :as ajax]
-            [jam.ajax]))
+            [jam.ajax]
+            [leipzig.scale :refer [C major]]
+            ))
 
 (re-frame/reg-event-db
  :initialize-db
@@ -85,9 +87,10 @@
  :keypressed
  ;;after?
  (fn [db [_ e]]
-   (let [note (-> e .-keyCode
+   (let [note (-> e
+                  logic/key-code
                   logic/keycode->note
-                  audio/pitch->playback-rate)]
+                  (logic/note->midi ))]
      (re-frame/dispatch [:play-sound (:selected-sound db) note])
      db)))
 
@@ -98,15 +101,3 @@
          sound-buffer ((keyword sound-key) sounds)]
      (audio/play-note audio-context pitch-shift sound-buffer note)
      db)))
-
-;; (re-frame/reg-event-db
-;;  :keypressed
-;;  ;;after?
-;;  (fn [db [_ e]]
-;;    (let [{:keys [selected-sound audio-context pitch-shift sounds]} db
-;;          sound (selected-sound sounds)
-;;          note (logic/keycode->note (.-keyCode e))]
-     
-;;      (audio/play-note audio-context pitch-shift sound note)
-;;      db))
- ;; )

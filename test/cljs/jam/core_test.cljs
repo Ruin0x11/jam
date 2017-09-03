@@ -1,10 +1,8 @@
 (ns jam.core-test
-  (:require [cljs.test :refer-macros [deftest testing is]]
-            [purnam.test :refer fact]
-            [jam.core :as core]))
+  (:require [jam.db :as db]))
 
-(deftest fake-test
-  (is (= 1 2)))
+;; (deftest fake-test
+;;   (is (!= 1 2)))
 
 ; (fact
 ;  (jam.db/sounds-to load
