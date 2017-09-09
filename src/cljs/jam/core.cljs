@@ -20,10 +20,13 @@
   (reagent/render [views/main-panel]
                   (.getElementById js/document "app")))
 
+(defn on-js-reload []
+  (re-frame/dispatch-sync [:initialize-db])
+  (re-frame/dispatch-sync [:add-tick-handler-ids [:tick-child1]])
+  (re-frame/dispatch [:next-tick])
+  (mount-root))
+
 (defn ^:export init []
   (routes/app-routes)
-  (re-frame/dispatch-sync [:initialize-db])
   (dev-setup)
-  (mount-root)
-
-  )
+  (on-js-reload))

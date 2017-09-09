@@ -46,19 +46,10 @@
 (defn start-source [source]
   (.start source 0))
 
-(def note->offset
-  {:c 0
-   :c# 1
-   :d 2
-   :d# 3
-   :e 4
-   :f 5
-   :f# 6
-   :g 7
-   :g# 8
-   :a 9
-   :a# 10
-   :b 11})
+(def note-names [:C :Db :D :Eb :E :F :Gb :G :Ab :A :Bb :B])
+
+(defn note->offset [note]
+  (.indexOf note-names note))
 
 (defn note-name->midi [note octave]
   (let [offset (note->offset note)]
@@ -67,24 +58,30 @@
 (defn midi->note-name [midi]
   (let [offset (mod midi 12)
         octave (logic/midi->octave midi)
-        note ((clojure.set/map-invert note->offset) offset)]
+        note (nth note-names offset)]
     {note octave}))
 
-(defn midi->freq [midi]
-  (* 440 (Math.pow 2 (/ (- (Math.floor midi) 69) 12))))
+(defn midi->hz [note-num]
+  (let [expt-numerator (- note-num 69)
+        expt-denominator 12
+        expt (/ expt-numerator expt-denominator)
+        multiplier (.pow js/Math 2 expt)
+        a 440]
+  (* multiplier a)))
+
 
 (defn midi->playback-rate [midi sample-freq]
-  (/ (midi->freq midi) sample-freq))
+  (/ (midi->hz midi) sample-freq))
 
 (defn play-note [ctx pitch-shift buf midi]
   (let [source (hum/create-buffer-source ctx buf)
         gain (hum/create-gain ctx 0.5)
 
-        true-midi (if (< (rand 1) 0.60)
+        true-midi (if (< (rand 1) 0.40)
           (logic/similar-note midi C major)
           midi)
 
-        rate (midi->playback-rate true-midi (-> (note-name->midi :g 4) (midi->freq)))]
+        rate (midi->playback-rate true-midi (-> (note-name->midi :g 4) (midi->hz)))]
 
     (set-playback-rate source rate)
 

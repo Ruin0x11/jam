@@ -17,12 +17,22 @@
  (fn [db]
    (map name (keys (:sounds db)))))
 
+(re-frame/reg-sub
+ :seeker-pos
+ (fn [db]
+   (:play-time db)))
 
 (re-frame/reg-sub
  :selected-sound
  (fn [db]
    (or (:selected-sound db)
        "")))
+
+(re-frame/reg-sub
+ :tracks
+ (fn [db _]
+   (:tracks db)))
+
 
 (re-frame/reg-sub
  :active-panel

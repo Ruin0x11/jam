@@ -51,18 +51,36 @@
 ;;         ]]))
 ;;   )
 
+(def time-to-px 30)
 
+(defn jam-seeker []
+  (fn []
+    (let [position (re-frame/subscribe [:seeker-pos])]
+      [:div {:style {:height "100%" :left (str (* time-to-px @position) "px") :position "absolute" :border-left "1px solid red"}}])))
+
+
+(defn jam-note [time]
+  (let [length "1em"]
+    [:li.note {:style {:left (str (* time-to-px time 1) "px"):width length}}]))
+
+
+(defn jam-track [notes top]
+  [:ul.track {:style {:height "100px"
+                 :top top
+                 :position "relative"}}
+   (map (fn [[time _]] [jam-note time]) notes)])
 
 (defn jam-panel []
-  (fn []
-    [:div
-     [:section#jam-main
-      [sound-selector]
-      ;; [spring-test]
-      ]
-     [:footer#jam-footer
-      [:div.footer-left
-       [:a {:href "#/"} "return"]]]]))
+  (let [tracks (re-frame/subscribe [:tracks])]
+    (fn []
+      [:div
+       [:section#jam-main
+        [jam-seeker]
+        [sound-selector]
+        (map-indexed (fn [i track] [jam-track (val track) (* 120 i)]) @tracks)]
+       [:footer#jam-footer
+        [:div.footer-left
+         [:a {:href "#/"} "return"]]]])))
 
 
 ;; main
@@ -80,5 +98,4 @@
 (defn main-panel []
   (let [active-panel (re-frame/subscribe [:active-panel])]
     (fn []
-      [show-panel @active-panel]))
-  )
+      [show-panel @active-panel])))

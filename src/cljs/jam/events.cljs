@@ -1,21 +1,88 @@
 (ns jam.events
   (:require [re-frame.core :as re-frame]
+            [re-frame.registrar]
+            [reagent.core :as reagent]
             [jam.db :as db]
             [jam.logic :as logic]
             [jam.audio :as audio]
             [ajax.core :as ajax]
             [jam.ajax]
             [leipzig.scale :refer [C major]]
+            [clojure.string]
+            [hum.core :as hum]
             ))
 
 (re-frame/reg-event-db
  :initialize-db
- (fn  [_ _]
+ (fn  [db _]
+   (when (not (nil? (:audio-context db)))
+     (.close (:audio-context db)))
    (set! (.-onkeydown js/document) logic/init-key-handler!) ;;impure
    (doseq [req (db/sound-requests)]
      (re-frame/dispatch req))                       ;; impure
    (-> db/default-db
        audio/init)))
+
+;; Handling of per-frame events
+
+(re-frame/reg-event-db
+ :add-tick-handler-ids re-frame/trim-v
+ (fn [db [ids]] (update db :tick-handler-ids (fnil into #{}) ids)))
+
+(re-frame/reg-event-db
+ :remove-tick-handler-ids re-frame/trim-v
+ (fn [db [ids]] (update db :tick-handler-ids #(apply disj % ids))))
+
+(defn re-trigger-timer []
+  (reagent/next-tick (fn [] (re-frame/dispatch [:next-tick]))))
+
+(re-frame/reg-event-db
+ :next-tick
+ (fn [db v]
+   (re-trigger-timer)
+   (transduce
+    (map (partial re-frame.registrar/get-handler :event))
+    (completing (fn [db h] (h db v)))
+    db (:tick-handler-ids db))))
+
+;; Per-tick handlers
+
+(defn notes-before-time [time notes]
+  (count (filter #(>= time (first %)) notes)))
+
+(defn note-diff [db time track]
+  (let [played (get-in db [:played-notes track])
+        notes (get-in db [:tracks track])
+        notes-before (notes-before-time time notes)
+        diff (- notes-before played)
+        end (+ diff played)
+        range (if (< played end) (range played end) (range end played))]
+    {:new notes-before :notes (map #(nth notes %) range)}))
+
+(defn update-played [db]
+  (let [time (:play-time db)
+        time-diff (if (= (:state db) :paused) 0 0.016)
+        tracks (keys (:tracks db))
+        diffs (map (partial note-diff db time) tracks)
+        to-play (zipmap tracks (map (comp first :notes) diffs))
+        new-played (zipmap tracks (map :new diffs))]
+    (doseq [track to-play]
+      (let [sound (key track)
+            midi (second (val track))]
+        (when (not (nil? midi))
+          (re-frame/dispatch [:play-sound sound midi]))))
+    (-> db
+        (assoc :play-time (+ time time-diff))
+        (assoc :played-notes new-played))))
+
+
+(re-frame.registrar/register-handler
+ :event
+ :tick-child1
+ (fn [db _]
+   (update-played db)))
+
+;; Regular handlers
 
 (re-frame/reg-event-db
  :hold-key
@@ -53,6 +120,7 @@
    (-> db
        (assoc :selected-sound (name sound))
        (assoc-in [:sounds sound] result))))
+
 
 (re-frame/reg-event-db
  :select-sound

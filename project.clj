@@ -5,8 +5,7 @@
                  [secretary "1.2.3"]
                  [hum "0.4.0"]
                  [day8.re-frame/http-fx "0.1.4"]
-                 [leipzig "0.10.0"]
-                 ]
+                 [leipzig "0.10.0"]]
 
   :plugins [[lein-cljsbuild "1.1.5"]
             [lein-less "1.7.5"]]
@@ -40,7 +39,7 @@
   {:builds
    [{:id           "dev"
      :source-paths ["src/cljs"]
-     :figwheel     {:on-jsload "jam.core/mount-root"}
+     :figwheel     {:on-jsload "jam.core/on-js-reload"}
      :compiler     {:main                 jam.core
                     :output-to            "resources/public/js/compiled/app.js"
                     :output-dir           "resources/public/js/compiled/out"

@@ -14,3 +14,41 @@ body {
   height: 100%;
   padding: 9px 0;
 }
+ul.track {
+  padding: 0;
+}
+li.note {
+  padding: 0
+    width: 1em;
+  height: 1em;
+  text-align: center;
+  line-height: 2em;
+  border-radius: 1em;
+  background: dodgerblue;
+  margin: 0 0em;
+  display: inline-block;
+  color: white;
+  position: absolute;
+}
+li::before {
+  content: '';
+  position: absolute;
+  top: .45em;
+  left: -4em;
+  width: 3em;
+  height: .2em;
+  background: dodgerblue;
+  z-index: -1;
+}
+li:first-child::before {
+  display: none;
+}
+.active {
+  background: dodgerblue;
+}
+.active ~ li {
+  background: lightblue;
+}
+.active ~ li::before {
+  background: lightblue;
+}
