@@ -204,7 +204,8 @@
                     midi)
          inst (:selected-instrument db)
          sample (db/note->sample inst midi)]
-     ;(re-frame/dispatch [:play-sound sample midi])
+     (when (not= state :playing)
+       (re-frame/dispatch [:play-sound sample midi]))
      new-db)))
 
 (re-frame/reg-event-db

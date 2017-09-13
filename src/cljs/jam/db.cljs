@@ -43,9 +43,19 @@
         note (fn [] [(rand 200) (- 2 (rand-int 4))])]
     (repeatedly length note)))
 
+(defn tick-track []
+  (let [length 50]
+    (map (fn [i] [(* 4 i) 60]) (range length))))
+
 (defn default-tracks []
   (let [keys (keys audio/instruments)]
-    (zipmap keys (repeatedly (count keys) gen-notes))))
+    (assoc
+     (zipmap keys (repeatedly (count keys) gen-notes))
+     :drumkit (tick-track))))
+
+(defn default-song []
+  (let [keys (keys audio/instruments)]
+    (zipmap keys (repeat (count keys) []))))
 
 
 (defn test-tracks []
@@ -64,8 +74,8 @@
    :tick-handler-ids #{}
    :state :paused
    :play-time 0
-   :tracks (test-tracks)
+   :tracks (default-tracks)
    :played-notes {}
 
-   :song {:guit song/test-song}
+   :song (default-song)
    })
