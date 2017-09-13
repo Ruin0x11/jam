@@ -34,7 +34,21 @@ li.note {
     position: absolute;
 }
 
-li::before {
+li.song-note {
+    padding: 0
+    width: 1em;
+    height: 3em;
+    text-align: center;
+    line-height: 2em;
+    border-radius: 1em;
+    background: gray;
+    margin: 0 0em;
+    display: inline-block;
+    color: white;
+    position: absolute;
+}
+
+li.note::before {
     content: '';
     position: absolute;
     top: .45em;

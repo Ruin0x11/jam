@@ -23,10 +23,10 @@
 (defn on-js-reload []
   (re-frame/dispatch-sync [:initialize-db])
   (re-frame/dispatch-sync [:add-tick-handler-ids [:tick-child1]])
-  (re-frame/dispatch [:next-tick])
   (mount-root))
 
 (defn ^:export init []
   (routes/app-routes)
   (dev-setup)
-  (on-js-reload))
+  (on-js-reload)
+  (re-frame/dispatch [:next-tick]))

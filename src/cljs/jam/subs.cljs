@@ -18,14 +18,19 @@
    (map name (keys (:sounds db)))))
 
 (re-frame/reg-sub
+ :instruments
+ (fn [db]
+   (:instruments db)))
+
+(re-frame/reg-sub
  :seeker-pos
  (fn [db]
    (:play-time db)))
 
 (re-frame/reg-sub
- :selected-sound
+ :selected-instrument
  (fn [db]
-   (or (:selected-sound db)
+   (or (:selected-instrument db)
        "")))
 
 (re-frame/reg-sub
@@ -33,6 +38,15 @@
  (fn [db _]
    (:tracks db)))
 
+(re-frame/reg-sub
+ :song
+ (fn [db _]
+   (:song db)))
+
+(re-frame/reg-sub
+ :state
+ (fn [db _]
+   (:state db)))
 
 (re-frame/reg-sub
  :active-panel

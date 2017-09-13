@@ -1,9 +1,10 @@
 (ns jam.db-test
-  
-  (:require [jam.db :as db]))
+  (:require [cljs.test :refer-macros [deftest is testing run-tests]]
+            [jam.db :as db]))
 
-;; (fact
-;;  (jam.db/sounds-to-load
-;;   [{:name "Drumkit", :type :drum, :sounds [:drum]}
-;;    {:name "Guitar", :type :sampler, :sounds [:guit]}])
-;;  => #{:guit :drum})
+(deftest db-test-cljs
+  (testing "that sounds are detected in instruments"
+    (is (= (db/sounds-to-load
+            {:drum {:name "Drumkit", :type :drum, :sounds [:drum]}
+             :guit {:name "Guitar", :type :sampler, :sounds [:guit]}})
+           '(:drum :guit)))))

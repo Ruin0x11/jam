@@ -6,6 +6,32 @@
             ;; [jam.pitch-shifter :as ps]
             ))
 
+(def drumkit
+  {:name "Drumkit"
+   :type :sampler
+   :sounds [:bassdrum :hihat :snare1 :snare2 :crash1 :crash2]})
+
+(def guit
+  {:name "Guitar"
+   :type :synth
+   :sounds [:guit1 :guit2 :guit3 :guit4]})
+
+(def acoustic
+  {:name "Acoustic Guitar"
+   :type :synth
+   :sounds [:acoustic]})
+
+(def sounds
+  {:guit1 [:a 2]
+   :guit2 [:d 3]
+   :guit3 [:b 3]
+   :guit4 [:g 4]
+   :acoustic [:b 4]})
+
+(def instruments {:drumkit drumkit
+                  :guit guit
+                  :acoustic acoustic})
+
 (defn create-context []
   (let [ctx (hum/create-context)
         ;; pitch-shift (ps/pitch-shift ctx)
@@ -46,7 +72,7 @@
 (defn start-source [source]
   (.start source 0))
 
-(def note-names [:C :Db :D :Eb :E :F :Gb :G :Ab :A :Bb :B])
+(def note-names [:c :c# :d :d# :e :f :f# :g :g# :a :a# :b])
 
 (defn note->offset [note]
   (.indexOf note-names note))
@@ -67,25 +93,27 @@
         expt (/ expt-numerator expt-denominator)
         multiplier (.pow js/Math 2 expt)
         a 440]
-  (* multiplier a)))
-
+    (* multiplier a)))
 
 (defn midi->playback-rate [midi sample-freq]
   (/ (midi->hz midi) sample-freq))
 
-(defn play-note [ctx pitch-shift buf midi]
+(defn play-note [ctx pitch-shift buf midi sample]
   (let [source (hum/create-buffer-source ctx buf)
         gain (hum/create-gain ctx 0.5)
+        base-note-name (sounds sample)
+        is-synth (not (nil? base-note-name))
+        playback-rate (if is-synth
+                        (let [sound-rate (->> base-note-name
+                                              (apply note-name->midi)
+                                              (midi->hz))]
+                          (midi->playback-rate midi sound-rate))
+                        1)]
 
-        true-midi (if (< (rand 1) 0.40)
-          (logic/similar-note midi C major)
-          midi)
-
-        rate (midi->playback-rate true-midi (-> (note-name->midi :g 4) (midi->hz)))]
-
-    (set-playback-rate source rate)
+    (set-playback-rate source playback-rate)
 
     (hum/connect source gain (.-destination ctx))
     (start-source source)
-    (.stop source (+ 0.5 (.-currentTime ctx)))
-    ))
+
+    (when is-synth
+      (.stop source (+ 0.5 (.-currentTime ctx))))))

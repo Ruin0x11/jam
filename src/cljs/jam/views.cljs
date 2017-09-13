@@ -25,20 +25,20 @@
 
 ;; jam
 
-(defn sound-option [s]
+(defn instrument-option [s]
   ^{:key s} [:option {:value s}
              s])
 
-(defn sound-options [sounds]
-  (map sound-option sounds))
+(defn instrument-options [instruments]
+  (map (comp instrument-option name key) instruments))
 
-(defn sound-selector []
-  (let [value (re-frame/subscribe [:selected-sound])
-        sounds (re-frame/subscribe [:loaded-sounds])]
+(defn instrument-selector []
+  (let [value (re-frame/subscribe [:selected-instrument])
+        instruments (re-frame/subscribe [:instruments])]
     [:select {:value @value
-              :on-change #(re-frame/dispatch [:select-sound (keyword (-> % .-target .-value))])
+              :on-change #(re-frame/dispatch [:select-instrument (keyword (-> % .-target .-value))])
              }
-     (sound-options @sounds)]))
+     (instrument-options @instruments)]))
 
 ;; (defn spring-test []
 ;;   (let [size (reagent/atom 24)
@@ -59,25 +59,53 @@
       [:div {:style {:height "100%" :left (str (* time-to-px @position) "px") :position "absolute" :border-left "1px solid red"}}])))
 
 
-(defn jam-note [time]
+(defn jam-note [style time]
   (let [length "1em"]
-    [:li.note {:style {:left (str (* time-to-px time 1) "px"):width length}}]))
+     [style {:style {:left (str (* time-to-px time 1) "px"):width length}}]))
 
+(defn jam-notes [top func notes]
+  [:ul.track
+   {:style {:height "100px"
+            :top top
+            :position "absolute"}}
+   (map-indexed (fn [i [time _]] ^{:key (str i (func time))} [func time]) notes)])
 
-(defn jam-track [notes top]
-  [:ul.track {:style {:height "100px"
-                 :top top
-                 :position "relative"}}
-   (map (fn [[time _]] [jam-note time]) notes)])
+(defn jam-track [notes song top]
+  (let [song (map (fn [n] [(:time n) (:pitch n)]) song)]
+    [:div
+     [jam-notes top (partial jam-note :li.note) notes]
+     [jam-notes top (partial jam-note :li.song-note) song]]))
+
+(defn play-pause-button []
+  (let [state (re-frame/subscribe [:state])
+        content (if (= @state :paused) "Play" "Pause")]
+    [:button {:on-click #(re-frame/dispatch [:toggle-play])}
+     content]))
+
+(defn reset-button []
+  [:button {:on-click #(re-frame/dispatch [:reset])}
+   "Reset"])
+
+(defn stop-button []
+  [:button {:on-click #(re-frame/dispatch [:stop])}
+   "Stop"])
 
 (defn jam-panel []
-  (let [tracks (re-frame/subscribe [:tracks])]
+  (let [tracks (re-frame/subscribe [:tracks])
+        song (re-frame/subscribe [:song])]
     (fn []
       [:div
        [:section#jam-main
         [jam-seeker]
-        [sound-selector]
-        (map-indexed (fn [i track] [jam-track (val track) (* 120 i)]) @tracks)]
+        [instrument-selector]
+        [reset-button]
+        [play-pause-button]
+        [stop-button]
+        (map-indexed (fn [i [track song-track]]
+                       ^{:key (str "track" i)}
+                       [jam-track (second track) (second song-track) (* 120 (+ 1 i))])
+                     (map vector @tracks @song))]
+
        [:footer#jam-footer
         [:div.footer-left
          [:a {:href "#/"} "return"]]]])))

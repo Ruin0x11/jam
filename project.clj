@@ -10,6 +10,8 @@
   :plugins [[lein-cljsbuild "1.1.5"]
             [lein-less "1.7.5"]]
 
+  :aliases {"testall" ["doo" "phantom" "test" "once"]}
+
   :min-lein-version "2.5.3"
 
   :source-paths ["src/clj"]
@@ -27,12 +29,17 @@
   :profiles
   {:dev
    {:dependencies [[binaryage/devtools "0.9.4"]
+                   [lein-doo "0.1.7"]
+                   [pjstadig/humane-test-output "0.6.0"]
                    [figwheel-sidecar "0.5.13"]
                    [com.cemerick/piggieback "0.2.2"]
                    [org.clojure/tools.nrepl "0.2.12"]]
 
     :plugins      [[lein-figwheel "0.5.13"]
                    [lein-doo "0.1.7"]]
+
+    :injections   [(require 'pjstadig.humane-test-output)
+                   (pjstadig.humane-test-output/activate!)]
     }}
 
   :cljsbuild

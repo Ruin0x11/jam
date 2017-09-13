@@ -5,19 +5,20 @@
             [jam.db :as db]
             [jam.logic :as logic]
             [jam.audio :as audio]
+            [jam.song :as song]
             [ajax.core :as ajax]
             [jam.ajax]
             [leipzig.scale :refer [C major]]
             [clojure.string]
-            [hum.core :as hum]
-            ))
+            [clojure.pprint]
+            [hum.core :as hum]))
 
 (re-frame/reg-event-db
  :initialize-db
  (fn  [db _]
    (when (not (nil? (:audio-context db)))
      (.close (:audio-context db)))
-   (set! (.-onkeydown js/document) logic/init-key-handler!) ;;impure
+   (logic/init-key-handler!) ;;impure
    (doseq [req (db/sound-requests)]
      (re-frame/dispatch req))                       ;; impure
    (-> db/default-db
@@ -51,26 +52,32 @@
   (count (filter #(>= time (first %)) notes)))
 
 (defn note-diff [db time track]
-  (let [played (get-in db [:played-notes track])
-        notes (get-in db [:tracks track])
-        notes-before (notes-before-time time notes)
-        diff (- notes-before played)
-        end (+ diff played)
-        range (if (< played end) (range played end) (range end played))]
-    {:new notes-before :notes (map #(nth notes %) range)}))
+  (if (empty? (get-in db [:tracks track]))
+    []
+    (let [played (or (get-in db [:played-notes track]) 0)
+          notes (get-in db [:tracks track])
+          notes-before (notes-before-time time notes)
+          diff (- notes-before played)
+          end (+ diff played)
+          range (if (< played end) (range played end) (range end played))]
+      {:new notes-before :notes (map #(nth notes %) range)})))
+
+(def time-per-tick 0.16)
 
 (defn update-played [db]
   (let [time (:play-time db)
-        time-diff (if (= (:state db) :paused) 0 0.016)
+        time-diff (if (= (:state db) :paused) 0 time-per-tick)
         tracks (keys (:tracks db))
         diffs (map (partial note-diff db time) tracks)
         to-play (zipmap tracks (map (comp first :notes) diffs))
         new-played (zipmap tracks (map :new diffs))]
     (doseq [track to-play]
-      (let [sound (key track)
-            midi (second (val track))]
-        (when (not (nil? midi))
-          (re-frame/dispatch [:play-sound sound midi]))))
+      (let [inst (key track)
+            note (second (val track))
+            midi (logic/note->midi-locked note C major)
+            sample (db/note->sample inst midi)]
+        (when (not (nil? note))
+          (re-frame/dispatch [:play-sound sample midi]))))
     (-> db
         (assoc :play-time (+ time time-diff))
         (assoc :played-notes new-played))))
@@ -80,7 +87,11 @@
  :event
  :tick-child1
  (fn [db _]
-   (update-played db)))
+   (if (= (:state db) :playing)
+     (-> db
+         update-played
+         song/update-song)
+     db)))
 
 ;; Regular handlers
 
@@ -99,9 +110,30 @@
  (fn [db [_ active-panel]]
    (assoc db :active-panel active-panel)))
 
+(re-frame/reg-event-db
+ :toggle-play
+ (fn [db _]
+   (update db :state #(if (= % :paused) :playing :paused))))
+
+(re-frame/reg-event-db
+ :reset
+ (fn [db _]
+   (-> db
+       (assoc :play-time 0)
+       (assoc :state :paused)
+       (assoc :tracks (:tracks db/default-db))
+       (assoc :song (:song db/default-db)))))
+
+(re-frame/reg-event-db
+ :stop
+ (fn [db _]
+   (-> db
+       (assoc :play-time 0)
+       (assoc :state :paused))))
+
 (defn parse-sound-name [uri]
   (or (keyword (second (re-find #"sounds/(.+).wav" uri)))
-      :test))
+      :crash1))
 
 (re-frame/reg-event-db
  :load-sound-success
@@ -123,9 +155,9 @@
 
 
 (re-frame/reg-event-db
- :select-sound
- (fn [db [_ sound]]
-   (assoc db :selected-sound sound)))
+ :select-instrument
+ (fn [db [_ instrument]]
+   (assoc db :selected-instrument instrument)))
 
 (re-frame/reg-event-db
  :load-sound-failure
@@ -155,17 +187,30 @@
  :keypressed
  ;;after?
  (fn [db [_ e]]
-   (let [note (-> e
-                  logic/key-code
-                  logic/keycode->note
-                  (logic/note->midi ))]
-     (re-frame/dispatch [:play-sound (:selected-sound db) note])
-     db)))
+   (let [
+         state (:state db)
+         [new-db note] (if (= state :playing)
+                         (song/play-note db :guit)
+                         [db (-> e logic/key-code logic/keycode->note)])
+         ;; midi (-> e
+         ;;          logic/key-code
+         ;;          logic/keycode->note
+         ;;          logic/note->midi)
+         midi (logic/note->midi note)
+         true-midi (if (< (rand 1) 0.40)
+                    ;; TODO push back into events? logic?
+                    ;; sample name detaches from true midi
+                    (logic/similar-note midi C major)
+                    midi)
+         inst (:selected-instrument db)
+         sample (db/note->sample inst midi)]
+     ;(re-frame/dispatch [:play-sound sample midi])
+     new-db)))
 
 (re-frame/reg-event-db
  :play-sound
  (fn [db [_ sound-key note]]
    (let [{:keys [audio-context pitch-shift sounds]} db
          sound-buffer ((keyword sound-key) sounds)]
-     (audio/play-note audio-context pitch-shift sound-buffer note)
+     (audio/play-note audio-context pitch-shift sound-buffer note sound-key)
      db)))
