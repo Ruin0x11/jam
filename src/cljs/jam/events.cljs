@@ -8,7 +8,7 @@
             [jam.song :as song]
             [ajax.core :as ajax]
             [jam.ajax]
-            [leipzig.scale :refer [C major]]
+            [leipzig.scale :refer [D major]]
             [clojure.string]
             [clojure.pprint]
             [hum.core :as hum]))
@@ -74,7 +74,7 @@
     (doseq [track to-play]
       (let [inst (key track)
             note (second (val track))
-            midi (logic/note->midi-locked note C major)
+            midi (logic/note->midi-locked note D major)
             sample (db/note->sample inst midi)]
         (when (not (nil? note))
           (re-frame/dispatch [:play-sound sample midi]))))
@@ -82,6 +82,13 @@
         (assoc :play-time (+ time time-diff))
         (assoc :played-notes new-played))))
 
+(defn update-modulation [db]
+  (when (> (:play-time db) 15)
+    (doseq [[b rate] (vals (:recent-buffers db))]
+      (when (not (nil? b))
+        (audio/set-playback-rate b (+ (* 0.1 (Math/sin (* 0.3 (:play-time db)))) rate)))))
+  db
+  )
 
 (re-frame.registrar/register-handler
  :event
@@ -90,6 +97,7 @@
    (if (= (:state db) :playing)
      (-> db
          update-played
+         update-modulation
          song/update-song)
      db)))
 
@@ -189,19 +197,22 @@
  (fn [db [_ e]]
    (let [
          state (:state db)
+         selected-instrument (:selected-instrument db)
          [new-db note] (if (= state :playing)
-                         (song/play-note db :guit)
+                         (song/play-note db selected-instrument)
                          [db (-> e logic/key-code logic/keycode->note)])
          ;; midi (-> e
          ;;          logic/key-code
          ;;          logic/keycode->note
          ;;          logic/note->midi)
-         midi (logic/note->midi note)
-         true-midi (if (< (rand 1) 0.40)
+         true-note (if (< (rand 1) 0.40)
                     ;; TODO push back into events? logic?
                     ;; sample name detaches from true midi
-                    (logic/similar-note midi C major)
-                    midi)
+                    (logic/similar-note note)
+                    note)
+
+         midi (logic/note->midi-locked true-note D major)
+
          inst (:selected-instrument db)
          sample (db/note->sample inst midi)]
      (when (not= state :playing)
@@ -212,6 +223,6 @@
  :play-sound
  (fn [db [_ sound-key note]]
    (let [{:keys [audio-context pitch-shift sounds]} db
-         sound-buffer ((keyword sound-key) sounds)]
-     (audio/play-note audio-context pitch-shift sound-buffer note sound-key)
-     db)))
+         sound-buffer ((keyword sound-key) sounds)
+         buffer (audio/play-note audio-context pitch-shift sound-buffer note sound-key)]
+     (assoc-in db [:recent-buffers sound-key] [buffer (-> buffer .-playbackRate .-value)]))))

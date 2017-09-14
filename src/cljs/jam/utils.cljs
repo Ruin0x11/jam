@@ -16,3 +16,7 @@
   (->> coll
          (drop (- index num))
          (take (+ 1 (* 2 num)))))
+
+
+(defn zip [& colls]
+  (apply (partial map vector) colls))

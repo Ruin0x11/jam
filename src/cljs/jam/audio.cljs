@@ -116,4 +116,6 @@
     (start-source source)
 
     (when is-synth
-      (.stop source (+ 0.5 (.-currentTime ctx))))))
+      (.stop source (+ 0.5 (.-currentTime ctx))))
+
+    source))

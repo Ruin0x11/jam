@@ -1,5 +1,6 @@
 (ns jam.song
   (:require [re-frame.core :as re-frame]
+            [jam.logic :as logic]
             [leipzig.scale :as scale]
             [leipzig.melody :as melody]))
 
@@ -37,18 +38,32 @@
   (let [time (:play-time db)
         song-keys (keys (:song db))
         song-notes (vals (:song db))
-        new-vals (map (partial update-track time) song-notes)]
-    (assoc db :song (zipmap song-keys new-vals))))
+        new-vals (map (partial update-track time) song-notes)
+        recent-notes (zipmap song-keys (map first song-notes))
+
+        recent-notes (into {} (filter val recent-notes))]
+    (-> db
+        (assoc :song (zipmap song-keys new-vals))
+        (update :recent-notes merge recent-notes))))
+
+(defn make-similar-note [db track]
+  (let [base-note (get-in db [:recent-notes track :pitch] 0)]
+
+    (-> base-note
+        logic/similar-note)))
 
 
 (defn play-note [db track]
   (let [song-track (get-in db [:song track])
         next-note (first song-track)
         time (:play-time db)
-        note (or (and (note-playable? time next-note) (:pitch next-note))
-                 0)
+        play-exact-note (note-playable? time next-note)
+        note (or (and play-exact-note (:pitch next-note))
+                 (make-similar-note db track))
         track-updated-db (if (note-playable? time next-note)
                            (update-in db [:song track] rest)
                            db)
+
+        ;; new-db (update-in track-updated-db [:buffer] (fnil conj []) [time note])
         new-db (update-in track-updated-db [:tracks track] conj [time note])]
     [new-db note]))

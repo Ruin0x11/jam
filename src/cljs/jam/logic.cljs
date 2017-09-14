@@ -73,8 +73,11 @@
         num 4]
     (u/surrounding scale pos num)))
 
-(defn similar-note [note key mode]
-  (rand-nth (notes-surrounding note key mode)))
+;(defn similar-note [midi key mode]
+;  (rand-nth (notes-surrounding midi key mode)))
+
+(defn similar-note [note]
+  (rand-nth (u/surrounding (range -35 35) (+ note 35) 2)))
 
 
 (defn key-code [e]

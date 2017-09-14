@@ -1,7 +1,8 @@
 (ns jam.db
   (:require [re-frame.core :as re-frame]
             [jam.audio :as audio]
-            [jam.song :as song]))
+            [jam.song :as song]
+            [jam.utils :as u]))
 
 
 (defn synth-sample [instrument note]
@@ -16,7 +17,7 @@
 (defn sampler-sample [instrument note]
   (let [instrument (instrument audio/instruments)
         sample-names (:sounds instrument)]
-    (rand-nth sample-names)))
+    (nth sample-names (mod note (count sample-names)))))
 
 (defn note->sample [instrument note]
   (let [data (instrument audio/instruments)
@@ -44,18 +45,21 @@
     (repeatedly length note)))
 
 (defn tick-track []
-  (let [length 50]
-    (map (fn [i] [(* 4 i) 60]) (range length))))
+  (let [length 50
+        positions (map #(* 4 %) (range length))
+        notes (take length (cycle [0 4 1 4]))]
+    (u/zip positions notes)))
 
 (defn default-tracks []
   (let [keys (keys audio/instruments)]
     (assoc
-     (zipmap keys (repeatedly (count keys) gen-notes))
+     (zipmap keys (repeatedly (count keys) vec))
      :drumkit (tick-track))))
 
 (defn default-song []
-  (let [keys (keys audio/instruments)]
-    (zipmap keys (repeat (count keys) []))))
+  {:drumkit []
+   :guit song/test-song
+   :acoustic []})
 
 
 (defn test-tracks []
@@ -77,5 +81,10 @@
    :tracks (default-tracks)
    :played-notes {}
 
+   :buffer nil
+
    :song (default-song)
+   :recent-notes {}
+   :recent-buffers {}
+   :is-modulating false
    })
